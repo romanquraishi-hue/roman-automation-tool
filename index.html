@@ -1,63 +1,90 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | Roman Quraishi Automation Tool</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body { background:#0d1117; color:white; }
+</style>
 </head>
-<body class="bg-[#0d1117] flex items-center justify-center min-h-screen p-4">
 
-    <div class="bg-[#161b22] border border-gray-700 p-8 rounded-2xl shadow-2xl w-full max-w-md border-t-4 border-t-yellow-500">
-        
-        <div class="text-center mb-8">
-            <h2 class="text-2xl font-bold text-white tracking-tight">আসসালামু আলাইকুম</h2>
-            <p class="text-yellow-500 font-medium mt-1">Welcome to Roman Quraishi's Workspace</p>
-            <div class="mt-4 flex justify-center">
-                <div class="w-20 h-20 bg-gray-800 rounded-full border-2 border-yellow-500 flex items-center justify-center">
-                    <i class="fa-solid fa-user-shield text-3xl text-yellow-500"></i>
-                </div>
-            </div>
-        </div>
+<body class="p-4">
 
-        <form id="loginForm" class="space-y-5">
-            <div>
-                <label class="block text-sm text-gray-400 mb-2">Username</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
-                        <i class="fa-solid fa-user text-xs"></i>
-                    </span>
-                    <input type="text" id="username" required
-                    class="w-full bg-[#0d1117] border border-gray-600 rounded-lg py-2.5 pl-10 pr-4 text-white focus:border-yellow-500 outline-none transition-all"
-                    placeholder="আপনার ইউজারনেম লিখুন">
-                </div>
-            </div>
+<h1 class="text-xl mb-4">📂 Document Dashboard</h1>
 
-            <div>
-                <label class="block text-sm text-gray-400 mb-2">Password</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
-                        <i class="fa-solid fa-lock text-xs"></i>
-                    </span>
-                    <input type="password" id="password" required
-                    class="w-full bg-[#0d1117] border border-gray-600 rounded-lg py-2.5 pl-10 pr-4 text-white focus:border-yellow-500 outline-none transition-all"
-                    placeholder="••••••••">
-                </div>
-            </div>
+<input type="file" id="fileInput" class="mb-3">
 
-            <button type="submit" 
-            class="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 rounded-lg transition-colors shadow-lg active:scale-95">
-                লগইন করুন
-            </button>
-        </form>
+<button onclick="uploadFile()" class="bg-yellow-500 px-4 py-2 rounded">
+Upload
+</button>
 
-        <p class="text-center text-[10px] text-gray-600 mt-8 uppercase tracking-widest">
-            Powered by Roman Quraishi Automation System
-        </p>
-    </div>
+<div id="files" class="mt-5 space-y-2"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="script.js"></script>
+<script>
+const supabaseUrl = "https://kqyofnstpuiwnpaftuhw.supabase.co";
+const supabaseKey = "sb_publishable_J82ULaoZUMkn69nzu3tvAg_jiZc7X7n";
+
+const client = supabase.createClient(supabaseUrl, supabaseKey);
+
+// Upload
+async function uploadFile(){
+const file = document.getElementById("fileInput").files[0];
+
+if(!file){
+alert("Select file first");
+return;
+}
+
+const fileName = Date.now() + "_" + file.name;
+
+const { data, error } = await client.storage
+.from("documents")
+.upload(fileName, file);
+
+if(error){
+alert(error.message);
+return;
+}
+
+// Get public URL
+const { data: urlData } = client.storage
+.from("documents")
+.getPublicUrl(fileName);
+
+// Save DB
+await client.from("files").insert({
+file_name: file.name,
+file_url: urlData.publicUrl
+});
+
+loadFiles();
+}
+
+// Load files
+async function loadFiles(){
+const { data } = await client.from("files").select("*");
+
+let html = "";
+
+data.forEach(f=>{
+html += `
+<div class="border p-2 rounded">
+📄 ${f.file_name}
+<a href="${f.file_url}" target="_blank" class="text-yellow-400 ml-2">Download</a>
+</div>
+`;
+});
+
+document.getElementById("files").innerHTML = html;
+}
+
+loadFiles();
+</script>
+
 </body>
 </html>
